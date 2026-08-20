@@ -8,18 +8,30 @@ export function isEmailJsConfigured() {
   return Boolean(serviceId && templateId && publicKey);
 }
 
+// Generates a fresh random 7-digit code every time it's called.
+export function generateVerificationCode(): string {
+  return String(Math.floor(1000000 + Math.random() * 9000000));
+}
+
 export async function sendVerificationCode({
   email,
   name,
   code,
+  expiresAt,
 }: {
   email: string;
   name: string;
   code: string;
+  expiresAt: number;
 }) {
   if (!serviceId || !templateId || !publicKey) {
     throw new Error("Email verification is not configured yet. Add the EmailJS environment variables.");
   }
+
+  const time = new Date(expiresAt).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   try {
     return await emailjs.send(
@@ -36,6 +48,8 @@ export async function sendVerificationCode({
         otp_code: code,
         verification_code: code,
         code,
+        passcode: code, // matches {{passcode}} in your EmailJS template
+        time,            // matches {{time}} in your EmailJS template
         app_name: "GraphixMo",
         message: `Your GraphixMo verification code is ${code}.`,
       },
