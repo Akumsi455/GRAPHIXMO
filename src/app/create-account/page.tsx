@@ -14,8 +14,6 @@ export default function CreateAccountPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -46,6 +44,7 @@ export default function CreateAccountPage() {
       setError(signUpError.message);
     } else {
       const email = String(formData.get("email") ?? "");
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     }
     setIsSubmitting(false);
