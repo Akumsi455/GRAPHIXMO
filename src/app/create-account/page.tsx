@@ -13,6 +13,9 @@ export default function CreateAccountPage() {
   const router = useRouter();
   const supabase = createClient();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,10 +29,10 @@ export default function CreateAccountPage() {
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "");
     const name = String(formData.get("name") ?? "");
-    const password = String(formData.get("password") ?? "");
-    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+    const submittedPassword = String(formData.get("password") ?? "");
+    const submittedConfirmPassword = String(formData.get("confirmPassword") ?? "");
 
-    if (password !== confirmPassword) {
+    if (submittedPassword !== submittedConfirmPassword) {
       setError("Passwords do not match.");
       setIsSubmitting(false);
       return;
@@ -37,7 +40,7 @@ export default function CreateAccountPage() {
 
     const { error: signUpError } = await supabase.auth.signUp({
       email: String(formData.get("email") ?? ""),
-      password,
+      password: submittedPassword,
       options: {
         data: { full_name: String(formData.get("name") ?? "") },
       },
@@ -47,15 +50,15 @@ export default function CreateAccountPage() {
       setError(signUpError.message);
     } else {
       const code = String(Math.floor(1000000 + Math.random() * 9000000));
+      const expiresAt = Date.now() + 10 * 60 * 1000;
       try {
-        await sendVerificationCode({ email, name, code });
-        sessionStorage.setItem(`graphixmo:verification:${email}`, JSON.stringify({ code, expiresAt: Date.now() + 10 * 60 * 1000 }));
+        await sendVerificationCode({ email, name, code, expiresAt });
+        sessionStorage.setItem(`graphixmo:verification:${email}`, JSON.stringify({ code, expiresAt }));
       } catch (emailError) {
         setError(emailError instanceof Error ? emailError.message : "We could not send your verification email.");
         setIsSubmitting(false);
         return;
       }
-      await new Promise((resolve) => setTimeout(resolve, 5000));
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     }
     setIsSubmitting(false);
@@ -110,7 +113,6 @@ export default function CreateAccountPage() {
                 </span>
               </label>
               <label className="block">
-              {isSubmitting && <div className="h-1 w-full overflow-hidden rounded-full bg-[#dbeafe]" aria-label="Preparing email verification"><div className="h-full w-0 animate-signup-loading rounded-full bg-[#2563eb]" /></div>}
                 <span className="mb-2 block text-sm font-semibold">Email address</span>
                 <span className="relative block">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -121,7 +123,7 @@ export default function CreateAccountPage() {
                 <span className="mb-2 block text-sm font-semibold">Password</span>
                 <span className="relative block">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
-                  <input type={showPassword ? "text" : "password"} name="password" autoComplete="new-password" placeholder="Enter your password" minLength={8} required className="h-13 w-full rounded-xl border border-border bg-[#fffdfa] pl-12 pr-12 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
+                  <input type={showPassword ? "text" : "password"} name="password" autoComplete="new-password" placeholder="Enter your password" minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} className="h-13 w-full rounded-xl border border-border bg-[#fffdfa] pl-12 pr-12 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted transition hover:bg-[#2563eb]/5 hover:text-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/40" aria-label={showPassword ? "Hide password" : "Show password"}>
                     {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                   </button>
@@ -131,8 +133,12 @@ export default function CreateAccountPage() {
                 <span className="mb-2 block text-sm font-semibold">Confirm password</span>
                 <span className="relative block">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
-                  <input type="password" name="confirmPassword" autoComplete="new-password" placeholder="Confirm your password" required className="h-13 w-full rounded-xl border border-border bg-[#fffdfa] pl-12 pr-4 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
+                  <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" autoComplete="new-password" placeholder="Confirm your password" required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="h-13 w-full rounded-xl border border-border bg-[#fffdfa] pl-12 pr-12 text-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10" />
+                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted transition hover:bg-[#2563eb]/5 hover:text-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/40" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
+                    {showConfirmPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+                  </button>
                 </span>
+                {confirmPassword && password !== confirmPassword && <span className="mt-2 block text-sm font-medium text-red-600" role="alert">Password and confirm password do not match.</span>}
               </label>
               <label className="flex items-start gap-3 pt-1 text-xs leading-5 text-muted">
                 <input type="checkbox" required className="mt-1 h-4 w-4 shrink-0 accent-primary" />

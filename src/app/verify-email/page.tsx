@@ -56,9 +56,10 @@ export default function VerifyEmailPage() {
     const stored = sessionStorage.getItem(`graphixmo:verification:${email}`);
     const previous = stored ? JSON.parse(stored) as { code: string } : null;
     const code = String(Math.floor(1000000 + Math.random() * 9000000));
+    const expiresAt = Date.now() + 10 * 60 * 1000;
     try {
-      await sendVerificationCode({ email, name: email.split("@")[0], code });
-      sessionStorage.setItem(`graphixmo:verification:${email}`, JSON.stringify({ code, expiresAt: Date.now() + 10 * 60 * 1000 }));
+      await sendVerificationCode({ email, name: email.split("@")[0], code, expiresAt });
+      sessionStorage.setItem(`graphixmo:verification:${email}`, JSON.stringify({ code, expiresAt }));
       setNotice(previous ? "A new verification code has been sent." : "A verification code has been sent.");
     } catch (resendError) {
       setError(resendError instanceof Error ? resendError.message : "We could not send a new verification code.");
