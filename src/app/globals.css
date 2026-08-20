@@ -56,6 +56,19 @@ body {
   transform: translateY(-1px);
 }
 
+@keyframes signup-loading {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-signup-loading {
+  animation: signup-loading 5s linear forwards;
+}
+
 .btn-interactive:active {
   transform: scale(0.97) translateY(0);
 }

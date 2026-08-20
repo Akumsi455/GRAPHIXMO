@@ -14,6 +14,8 @@ export default function CreateAccountPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -98,6 +100,7 @@ export default function CreateAccountPage() {
                 </span>
               </label>
               <label className="block">
+              {isSubmitting && <div className="h-1 w-full overflow-hidden rounded-full bg-[#dbeafe]" aria-label="Preparing email verification"><div className="h-full w-0 animate-signup-loading rounded-full bg-[#2563eb]" /></div>}
                 <span className="mb-2 block text-sm font-semibold">Email address</span>
                 <span className="relative block">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" aria-hidden="true" />
