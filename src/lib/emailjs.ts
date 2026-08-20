@@ -21,15 +21,31 @@ export async function sendVerificationCode({
     throw new Error("Email verification is not configured yet. Add the EmailJS environment variables.");
   }
 
-  return emailjs.send(
-    serviceId,
-    templateId,
-    {
-      to_email: email,
-      to_name: name,
-      otp_code: code,
-      app_name: "GraphixMo",
-    },
-    { publicKey },
-  );
+  try {
+    return await emailjs.send(
+      serviceId,
+      templateId,
+      {
+        to_email: email,
+        to: email,
+        email,
+        user_email: email,
+        to_name: name,
+        name,
+        user_name: name,
+        otp_code: code,
+        verification_code: code,
+        code,
+        app_name: "GraphixMo",
+        message: `Your GraphixMo verification code is ${code}.`,
+      },
+      { publicKey },
+    );
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "status" in error && "text" in error) {
+      const emailJsError = error as { status: number; text: string };
+      throw new Error(`EmailJS ${emailJsError.status}: ${emailJsError.text}`);
+    }
+    throw error;
+  }
 }
