@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Mail } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, Suspense, useRef, useState } from "react";
 import { sendVerificationCode } from "@/lib/emailjs";
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "your email address";
@@ -92,5 +92,13 @@ export default function VerifyEmailPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-white" />}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
