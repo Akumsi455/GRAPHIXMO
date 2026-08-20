@@ -1,3 +1,6 @@
+# GRAPHIXMO
+This is the repository for the GraphixMo project, a web application that helps businesses and designers create designs quickly.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
