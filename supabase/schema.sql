@@ -48,6 +48,8 @@ create table if not exists public.designs (
 );
 
 create index if not exists payments_user_id_idx on public.payments(user_id);
+create index if not exists profiles_created_at_idx on public.profiles(created_at desc);
+create index if not exists subscriptions_user_id_idx on public.subscriptions(user_id);
 create index if not exists designs_user_id_idx on public.designs(user_id);
 create index if not exists designs_updated_at_idx on public.designs(updated_at desc);
 
@@ -59,6 +61,7 @@ alter table public.designs enable row level security;
 create policy "Users can view their profile" on public.profiles for select using (auth.uid() = id);
 create policy "Users can update their profile" on public.profiles for update using (auth.uid() = id);
 create policy "Users can view their payments" on public.payments for select using (auth.uid() = user_id);
+create policy "Users can create their payments" on public.payments for insert with check (auth.uid() = user_id);
 create policy "Users can view their subscription" on public.subscriptions for select using (auth.uid() = user_id);
 create policy "Users can view their designs" on public.designs for select using (auth.uid() = user_id);
 create policy "Users can create their designs" on public.designs for insert with check (auth.uid() = user_id);
@@ -72,7 +75,9 @@ security definer set search_path = public
 as $$
 begin
   insert into public.profiles (id, full_name)
-  values (new.id, new.raw_user_meta_data ->> 'full_name');
+  values (new.id, new.raw_user_meta_data ->> 'full_name')
+  on conflict (id) do update
+  set full_name = excluded.full_name, updated_at = now();
   return new;
 end;
 $$;
@@ -81,3 +86,10 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Repair users created before the profile trigger was available.
+insert into public.profiles (id, full_name)
+select id, raw_user_meta_data ->> 'full_name'
+from auth.users
+on conflict (id) do update
+set full_name = excluded.full_name, updated_at = now();
