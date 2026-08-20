@@ -43,8 +43,8 @@ export default function CreateAccountPage() {
     if (signUpError) {
       setError(signUpError.message);
     } else {
-      setNotice("Account created. Check your email to confirm your account.");
-      router.refresh();
+      const email = String(formData.get("email") ?? "");
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     }
     setIsSubmitting(false);
   }
