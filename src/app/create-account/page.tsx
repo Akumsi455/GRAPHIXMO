@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
+import { sendVerificationCode } from "@/lib/emailjs";
 
 const benefits = ["Free to start", "No credit card required", "Ready-made templates included"];
 
@@ -23,6 +24,8 @@ export default function CreateAccountPage() {
     setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const name = String(formData.get("name") ?? "");
     const password = String(formData.get("password") ?? "");
     const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
@@ -43,7 +46,15 @@ export default function CreateAccountPage() {
     if (signUpError) {
       setError(signUpError.message);
     } else {
-      const email = String(formData.get("email") ?? "");
+      const code = String(Math.floor(1000000 + Math.random() * 9000000));
+      try {
+        await sendVerificationCode({ email, name, code });
+        sessionStorage.setItem(`graphixmo:verification:${email}`, JSON.stringify({ code, expiresAt: Date.now() + 10 * 60 * 1000 }));
+      } catch (emailError) {
+        setError(emailError instanceof Error ? emailError.message : "We could not send your verification email.");
+        setIsSubmitting(false);
+        return;
+      }
       await new Promise((resolve) => setTimeout(resolve, 5000));
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     }

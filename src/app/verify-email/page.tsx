@@ -4,13 +4,12 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Mail } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FormEvent, useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/browser";
+import { sendVerificationCode } from "@/lib/emailjs";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "your email address";
-  const supabase = createClient();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [code, setCode] = useState(["", "", "", "", "", "", ""]);
   const [notice, setNotice] = useState("");
@@ -39,14 +38,12 @@ export default function VerifyEmailPage() {
       return;
     }
     setIsSubmitting(true);
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: "signup",
-    });
-    if (verifyError) {
-      setError(verifyError.message);
+    const stored = sessionStorage.getItem(`graphixmo:verification:${email}`);
+    const verification = stored ? JSON.parse(stored) as { code: string; expiresAt: number } : null;
+    if (!verification || verification.expiresAt < Date.now() || verification.code !== token) {
+      setError("That code is invalid or has expired. Request a new code.");
     } else {
+      sessionStorage.removeItem(`graphixmo:verification:${email}`);
       router.push("/dashboard");
       router.refresh();
     }
@@ -56,9 +53,16 @@ export default function VerifyEmailPage() {
   async function resendCode() {
     setNotice("");
     setError("");
-    const { error: resendError } = await supabase.auth.resend({ type: "signup", email });
-    if (resendError) setError(resendError.message);
-    else setNotice("A new verification code has been sent.");
+    const stored = sessionStorage.getItem(`graphixmo:verification:${email}`);
+    const previous = stored ? JSON.parse(stored) as { code: string } : null;
+    const code = String(Math.floor(1000000 + Math.random() * 9000000));
+    try {
+      await sendVerificationCode({ email, name: email.split("@")[0], code });
+      sessionStorage.setItem(`graphixmo:verification:${email}`, JSON.stringify({ code, expiresAt: Date.now() + 10 * 60 * 1000 }));
+      setNotice(previous ? "A new verification code has been sent." : "A verification code has been sent.");
+    } catch (resendError) {
+      setError(resendError instanceof Error ? resendError.message : "We could not send a new verification code.");
+    }
   }
 
   return (
