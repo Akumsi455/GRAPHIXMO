@@ -131,6 +131,11 @@ export default function CreateAccountPage() {
                 {isSubmitting ? "Creating account..." : "Create free account"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>
+              {isSubmitting && (
+                <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-[#dbeafe]" aria-label="Preparing email verification">
+                  <div className="h-full w-0 animate-signup-loading rounded-full bg-[#2563eb]" />
+                </div>
+              )}
               {error && <p className="text-center text-sm font-medium text-red-600" role="alert">{error}</p>}
               {notice && <p className="text-center text-sm font-medium text-[#2563eb]" role="status">{notice}</p>}
             </form>
