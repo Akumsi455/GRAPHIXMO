@@ -3,16 +3,44 @@
 import Link from "next/link";
 import { ArrowRight, Check, CreditCard, LockKeyhole, Smartphone } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { createClient } from "@/lib/supabase/browser";
 
 type PaymentMethod = "stripe" | "mobile-money";
 
 export default function PaymentPage() {
+  const supabase = createClient();
   const [method, setMethod] = useState<PaymentMethod>("stripe");
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("Your payment details are ready to connect securely.");
+    setNotice("");
+    setError("");
+    setIsSubmitting(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Please log in before starting a Pro subscription.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error: paymentError } = await supabase.from("payments").insert({
+      user_id: user.id,
+      provider: method === "mobile-money" ? "mobile_money" : "stripe",
+      amount: 9500,
+      currency: "XOF",
+      status: "pending",
+    });
+
+    if (paymentError) {
+      setError(paymentError.message);
+    } else {
+      setNotice("Payment request saved. Provider confirmation is next.");
+    }
+    setIsSubmitting(false);
   }
 
   return (
@@ -87,8 +115,9 @@ export default function PaymentPage() {
                   </div>
                 )}
 
-                <button type="submit" className="btn-interactive group flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/25 transition hover:bg-primary-dark hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">Pay 9,500 FCFA<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" /></button>
+                <button type="submit" disabled={isSubmitting} className="btn-interactive group flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/25 transition hover:bg-primary-dark hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2">{isSubmitting ? "Saving payment..." : "Pay 9,500 FCFA"}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" /></button>
                 {notice && <p className="text-center text-sm font-medium text-primary" role="status">{notice}</p>}
+                {error && <p className="text-center text-sm font-medium text-red-600" role="alert">{error}</p>}
                 <p className="flex items-center justify-center gap-2 text-xs text-muted"><LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" /> Your payment information is encrypted and secure.</p>
               </form>
             </div>

@@ -1,18 +1,52 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { createClient } from "@/lib/supabase/browser";
 
 const benefits = ["Free to start", "No credit card required", "Ready-made templates included"];
 
 export default function CreateAccountPage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("Your account is ready to connect.");
+    setNotice("");
+    setError("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const password = String(formData.get("password") ?? "");
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email: String(formData.get("email") ?? ""),
+      password,
+      options: {
+        data: { full_name: String(formData.get("name") ?? "") },
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+    } else {
+      setNotice("Account created. Check your email to confirm your account.");
+      router.refresh();
+    }
+    setIsSubmitting(false);
   }
 
   return (
@@ -91,10 +125,11 @@ export default function CreateAccountPage() {
                 <input type="checkbox" required className="mt-1 h-4 w-4 shrink-0 accent-primary" />
                 <span>I agree to the <Link href="#" className="font-semibold text-foreground underline underline-offset-2">Terms</Link> and <Link href="#" className="font-semibold text-foreground underline underline-offset-2">Privacy Policy</Link>.</span>
               </label>
-              <button type="submit" className="btn-interactive group flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-6 text-sm font-bold text-white shadow-lg shadow-[#2563eb]/25 transition hover:bg-[#1d4ed8] hover:shadow-xl hover:shadow-[#2563eb]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/50 focus-visible:ring-offset-2">
-                Create free account
+              <button type="submit" disabled={isSubmitting} className="btn-interactive group flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-6 text-sm font-bold text-white shadow-lg shadow-[#2563eb]/25 transition hover:bg-[#1d4ed8] hover:shadow-xl hover:shadow-[#2563eb]/30 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/50 focus-visible:ring-offset-2">
+                {isSubmitting ? "Creating account..." : "Create free account"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </button>
+              {error && <p className="text-center text-sm font-medium text-red-600" role="alert">{error}</p>}
               {notice && <p className="text-center text-sm font-medium text-[#2563eb]" role="status">{notice}</p>}
             </form>
 

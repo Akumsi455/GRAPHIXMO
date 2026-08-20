@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye, EyeOff, LockKeyhole, Mail, Sparkles } from "lucide-react";
 import { FormEvent, useState } from "react";
+import { createClient } from "@/lib/supabase/browser";
 
 const benefits = [
   "Unlimited designs on every plan",
@@ -11,12 +13,32 @@ const benefits = [
 ];
 
 export default function LoginPage() {
+  const router = useRouter();
+  const supabase = createClient();
   const [showPassword, setShowPassword] = useState(false);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("Login is ready to connect to your account.");
+    setNotice("");
+    setError("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+    } else {
+      router.push("/dashboard");
+      router.refresh();
+    }
+    setIsSubmitting(false);
   }
 
   return (
@@ -125,10 +147,11 @@ export default function LoginPage() {
               </span>
             </label>
 
-            <button type="submit" className="btn-interactive group flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-6 text-sm font-bold text-white shadow-lg shadow-[#2563eb]/25 transition hover:bg-[#1d4ed8] hover:shadow-xl hover:shadow-[#2563eb]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/50 focus-visible:ring-offset-2">
-              Log in
+            <button type="submit" disabled={isSubmitting} className="btn-interactive group flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-6 text-sm font-bold text-white shadow-lg shadow-[#2563eb]/25 transition hover:bg-[#1d4ed8] hover:shadow-xl hover:shadow-[#2563eb]/30 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]/50 focus-visible:ring-offset-2">
+              {isSubmitting ? "Logging in..." : "Log in"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </button>
+            {error && <p className="text-center text-sm font-medium text-red-600" role="alert">{error}</p>}
             {notice && <p className="text-center text-sm font-medium text-[#2563eb]" role="status">{notice}</p>}
           </form>
 
